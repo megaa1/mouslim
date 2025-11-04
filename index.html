@@ -22,9 +22,16 @@
 
 	<!-- Favicon -->
 
-	<link rel="shortcut icon" href="/images/logo.png" type="image/x-icon">
-	<link rel="manifest" href="assets/favicon/site.webmanifest">
+    <link rel="shortcut icon" href="./images/quran-logo.png" type="image/x-icon">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/boxicons@latest/css/boxicons.min.css">
+    
+    <!-- إعادة توجيه HTTP إلى HTTPS -->
+    <script>
+        // إعادة توجيه تلقائية من HTTP إلى HTTPS
+        if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            window.location.href = window.location.href.replace('http:', 'https:');
+        }
+    </script>
 </head>
 <body>
        
@@ -39,7 +46,7 @@
             <li><a href="./المحاضرات/lectures.html">مرئيات</a></li>
             <li><a href="./كتب/كتب.html">كتب</a></li>
             <li><a href="./اذكار/azkar.html">الأذكار</a></li>
-            <li><a href="#footer">الأذاعه</a></li>
+            <li><a href="#radio">الإذاعة</a></li>
            </ul>
            <div class="bars">
                <i class="fas fa-bars"></i>
@@ -252,7 +259,6 @@
 
         </div>   
         </div> 
-      </div>
 
      </section>
     <!-- End OF radio Section -->  
