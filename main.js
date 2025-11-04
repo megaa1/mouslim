@@ -255,25 +255,34 @@ async function fetchHadithAlternative(book, page) {
     }
 }
 
-document.getElementById('next-btn').addEventListener('click', () => {
-    currentPage++;
-    const book = document.getElementById('book-select').value;
-    fetchHadith(book, currentPage);
-});
-
-document.getElementById('prev-btn').addEventListener('click', () => {
-    if (currentPage > 1) {
-        currentPage--;
+const nextBtnHadith = document.getElementById('next-btn');
+if (nextBtnHadith) {
+    nextBtnHadith.addEventListener('click', () => {
+        currentPage++;
         const book = document.getElementById('book-select').value;
         fetchHadith(book, currentPage);
-    }
-});
+    });
+}
 
-document.getElementById('book-select').addEventListener('change', () => {
-    currentPage = 1; // إعادة تعيين الصفحة عند تغيير الكتاب
-    const book = document.getElementById('book-select').value;
-    fetchHadith(book, currentPage);
-});
+const prevBtnHadith = document.getElementById('prev-btn');
+if (prevBtnHadith) {
+    prevBtnHadith.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            const book = document.getElementById('book-select').value;
+            fetchHadith(book, currentPage);
+        }
+    });
+}
+
+const bookSelect = document.getElementById('book-select');
+if (bookSelect) {
+    bookSelect.addEventListener('change', () => {
+        currentPage = 1; // إعادة تعيين الصفحة عند تغيير الكتاب
+        const book = document.getElementById('book-select').value;
+        fetchHadith(book, currentPage);
+    });
+}
 
 // جلب الأحاديث عند تحميل الصفحة
 fetchHadith('muslim', currentPage);
@@ -441,51 +450,57 @@ fetch('https://data-rosy.vercel.app/radio.json')
 // Load radio station details
 function loadStation(index) {
   const station = stations[index];
-  radioStream.src = station.url;
-  radioName.innerHTML = station.name;
-  radioImage.src = station.img;
-  statusText.textContent = 'قيد التوقف';
-  playBtn.innerHTML = '<i class="fas fa-play"></i>';
+  if (radioStream) radioStream.src = station.url;
+  if (radioName) radioName.innerHTML = station.name;
+  if (radioImage) radioImage.src = station.img;
+  if (statusText) statusText.textContent = 'قيد التوقف';
+  if (playBtn) playBtn.innerHTML = '<i class="fas fa-play"></i>';
   isPlaying = false;
 }
 
 // Play/Pause functionality
-playBtn.addEventListener('click', function() {
-  if (isPlaying) {
-    radioStream.pause();
-    playBtn.innerHTML = '<i class="fas fa-play"></i>';
-    statusText.textContent = 'قيد التوقف';
-  } else {
-    radioStream.play();
-    playBtn.innerHTML = '<i class="fas fa-pause"></i>';
-    statusText.textContent = 'قيد التشغيل';
-  }
-  isPlaying = !isPlaying;
-});
+if (playBtn && statusText) {
+    playBtn.addEventListener('click', function() {
+        if (isPlaying) {
+            radioStream.pause();
+            playBtn.innerHTML = '<i class="fas fa-play"></i>';
+            statusText.textContent = 'قيد التوقف';
+        } else {
+            radioStream.play();
+            playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            statusText.textContent = 'قيد التشغيل';
+        }
+        isPlaying = !isPlaying;
+    });
+}
 
 // Navigate to the previous station
-prevBtn.addEventListener('click', function() {
-  if (currentStationIndex > 0) {
-    currentStationIndex--;
-    loadStation(currentStationIndex);
-    if (isPlaying) {
-      radioStream.play();
-      statusText.textContent = 'قيد التشغيل';
-    }
-  }
-});
+if (prevBtn && statusText) {
+    prevBtn.addEventListener('click', function() {
+        if (currentStationIndex > 0) {
+            currentStationIndex--;
+            loadStation(currentStationIndex);
+            if (isPlaying) {
+                radioStream.play();
+                statusText.textContent = 'قيد التشغيل';
+            }
+        }
+    });
+}
 
 // Navigate to the next station
-nextBtn.addEventListener('click', function() {
-  if (currentStationIndex < stations.length - 1) {
-    currentStationIndex++;
-    loadStation(currentStationIndex);
-    if (isPlaying) {
-      radioStream.play();
-      statusText.textContent = 'قيد التشغيل';
-    }
-  }
-});
+if (nextBtn && statusText) {
+    nextBtn.addEventListener('click', function() {
+        if (currentStationIndex < stations.length - 1) {
+            currentStationIndex++;
+            loadStation(currentStationIndex);
+            if (isPlaying) {
+                radioStream.play();
+                statusText.textContent = 'قيد التشغيل';
+            }
+        }
+    });
+}
 
 // المحاضرات
 
