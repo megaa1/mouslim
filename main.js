@@ -1,17 +1,23 @@
 
 modalContainer = document.getElementById("modal-container");
-window.onload = (event) => {
-    modalContainer.classList.add('show-modal');
-  };
+if (modalContainer) {
+    window.onload = (event) => {
+        modalContainer.classList.add('show-modal');
+    };
+}
   
 /*=============== CLOSE MODAL ===============*/
 const closeBtn = document.querySelectorAll('.close-modal');
 
 function closeModal(){
     const modalContainer = document.getElementById('modal-container')
-    modalContainer.classList.remove('show-modal')
+    if (modalContainer) {
+        modalContainer.classList.remove('show-modal')
+    }
 }
-closeBtn.forEach(c => c.addEventListener('click', closeModal))
+if (closeBtn.length > 0) {
+    closeBtn.forEach(c => c.addEventListener('click', closeModal))
+}
 
 
 // Selecting DOM Elements
@@ -33,57 +39,82 @@ const randomNum = generateRandomNum()
 
 
 // Fetching API
-const arabicApi = `https://api.alquran.cloud/v1/ayah/${randomNum}/ar.minshawi`
+if (arabicAyah && suraName && ayahNum && audio) {
+    const arabicApi = `https://api.alquran.cloud/v1/ayah/${randomNum}/ar.minshawi`
 
-const arabic = fetch(arabicApi)
-                .then(blob => blob.json())
-                .then(data => {
-                    arabicAyah.textContent = `${data.data.text}`
-                    suraName.textContent = `${data.data.surah.name}`
-                    ayahNum.textContent = `${data.data.numberInSurah}`
-                    audio.src = data.data.audio
-                })
+    const arabic = fetch(arabicApi)
+                    .then(blob => blob.json())
+                    .then(data => {
+                        if (arabicAyah) arabicAyah.textContent = `${data.data.text}`
+                        if (suraName) suraName.textContent = `${data.data.surah.name}`
+                        if (ayahNum) ayahNum.textContent = `${data.data.numberInSurah}`
+                        if (audio) audio.src = data.data.audio
+                    })
+                    .catch(error => console.error('Error fetching ayah:', error))
+}
 
 // Event Listener
-btnPlay.addEventListener('click', () =>{
-    audio.play()
-})
-generateBtn.addEventListener('click',()=>{
-    location.reload()
-})
+if (btnPlay && audio) {
+    btnPlay.addEventListener('click', () =>{
+        audio.play()
+    })
+}
+if (generateBtn) {
+    generateBtn.addEventListener('click',()=>{
+        location.reload()
+    })
+}
 
 
 
 
 //Explore button 
-let exploreBtn = document.querySelector('.title .btn'),
+let exploreBtn = document.querySelector('.btn-primary'),
     HadithSection = document.querySelector('.hadith');
-exploreBtn.addEventListener('click',()=>{
-    HadithSection.scrollIntoView({
-        behavior : "smooth"
+if (exploreBtn && HadithSection) {
+    exploreBtn.addEventListener('click',()=>{
+        HadithSection.scrollIntoView({
+            behavior : "smooth"
+        })
     })
-})
+}
 let fixedNav = document.querySelector('.header'),
      scrollBtn = document.querySelector('.scrollBtn');
-window.addEventListener("scroll",()=>{
-    window.scrollY > 100 ? fixedNav.classList.add('active') : fixedNav.classList.remove('active');
-    window.scrollY > 500 ?  scrollBtn.classList.add('active') : scrollBtn.classList.remove('active') ;
-})
-scrollBtn.addEventListener('click',()=>{
-    window.scrollTo({
-        top : 0,
-        behavior : "smooth"
+if (fixedNav) {
+    window.addEventListener("scroll",()=>{
+        if (window.scrollY > 100) {
+            fixedNav.classList.add('active');
+        } else {
+            fixedNav.classList.remove('active');
+        }
+        if (scrollBtn) {
+            if (window.scrollY > 500) {
+                scrollBtn.classList.add('active');
+            } else {
+                scrollBtn.classList.remove('active');
+            }
+        }
     })
-})
+}
+if (scrollBtn) {
+    scrollBtn.addEventListener('click',()=>{
+        window.scrollTo({
+            top : 0,
+            behavior : "smooth"
+        })
+    })
+}
 
 
 
 //Active SideBar
 let bars = document.querySelector('.bars'),
     SideBar = document.querySelector('.header ul');
-bars.addEventListener('click',()=>{
-    SideBar.classList.toggle("active");
-})
+if (bars && SideBar) {
+    bars.addEventListener('click',()=>{
+        SideBar.classList.toggle("active");
+    })
+}
 
 //hadith
 let currentPage = 1;
