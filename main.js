@@ -16,7 +16,7 @@ closeBtn.forEach(c => c.addEventListener('click', closeModal))
 
 // Selecting DOM Elements
 const arabicAyah = document.querySelector('.arabic-ayah')
-const suraNumber = document.querySelector('sura-number')
+const suraNumber = document.querySelector('.sura-number')
 const audio = document.querySelector('audio')
 const btnPlay = document.querySelector('.btn-play')
 const generateBtn = document.querySelector('.btn-generate')
@@ -90,22 +90,137 @@ let currentPage = 1;
 let totalHadith = 300; // يمكنك تعديل هذه القيمة حسب العدد الكلي للأحاديث
 
 async function fetchHadith(book, page) {
-    const response = await fetch(`https://hadis-api-id.vercel.app/hadith/${book}?page=${page}&limit=1`);
-    const data = await response.json();
     const hadithContainer = document.getElementById('hadith-container');
-    hadithContainer.innerHTML = '';
+    
+    if (!hadithContainer) {
+        console.error('Hadith container not found');
+        return;
+    }
+    
+    // محاولة استخدام API البديل أولاً لأنه يدعم CORS بشكل أفضل
+    try {
+        await fetchHadithAlternative(book, page);
+    } catch (altError) {
+        console.log('Alternative API failed, trying CORS proxy:', altError);
+        
+        // إذا فشل API البديل، جرب CORS proxy
+        try {
+            const apiUrl = `https://hadis-api-id.vercel.app/hadith/${book}?page=${page}&limit=1`;
+            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`;
+            
+            const response = await fetch(proxyUrl);
+            
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            
+            const proxyData = await response.json();
+            
+            // تحليل البيانات من CORS proxy
+            let data;
+            try {
+                data = JSON.parse(proxyData.contents);
+            } catch (e) {
+                data = proxyData.contents;
+            }
+            
+            hadithContainer.innerHTML = '';
 
-    if (data.items && data.items.length > 0) {
-        const hadith = data.items[0];
+            if (data.items && data.items.length > 0) {
+                const hadith = data.items[0];
+                const hadithElement = document.createElement('div');
+                hadithElement.textContent = `${hadith.arab}`;
+                hadithContainer.appendChild(hadithElement);
+
+                const numElement = document.getElementById('num');
+                if (numElement) {
+                    numElement.textContent = `${hadith.number} / ${totalHadith}`;
+                }
+            } else if (data.data && data.data.length > 0) {
+                const hadith = data.data[0];
+                const hadithElement = document.createElement('div');
+                hadithElement.textContent = `${hadith.arab || hadith.text}`;
+                hadithContainer.appendChild(hadithElement);
+
+                const numElement = document.getElementById('num');
+                if (numElement) {
+                    numElement.textContent = `${hadith.number || page} / ${totalHadith}`;
+                }
+            } else {
+                hadithContainer.innerHTML = '<div>لا توجد أحاديث في هذا المصدر.</div>';
+                const numElement = document.getElementById('num');
+                if (numElement) {
+                    numElement.textContent = '0 / 300';
+                }
+            }
+        } catch (error) {
+            console.error('CORS proxy also failed:', error);
+            hadithContainer.innerHTML = '<div>حدث خطأ في تحميل الأحاديث. يرجى المحاولة مرة أخرى أو تحديث الصفحة.</div>';
+        }
+    }
+}
+
+// دالة بديلة لجلب الأحاديث من API آخر
+async function fetchHadithAlternative(book, page) {
+    const hadithContainer = document.getElementById('hadith-container');
+    
+    if (!hadithContainer) {
+        throw new Error('Hadith container not found');
+    }
+    
+    // خريطة أسماء الكتب من القيم المستخدمة في الموقع إلى أسماء API
+    const bookMap = {
+        'muslim': 'muslim',
+        'bukhari': 'bukhari',
+        'abu-dawud': 'abu-dawud',
+        'ahmad': 'ahmad',
+        'ibnu-majah': 'ibn-majah',
+        'malik': 'malik',
+        'nasai': 'nasai',
+        'tirmidzi': 'tirmidzi',
+        'darimi': 'darimi'
+    };
+    
+    const apiBookName = bookMap[book] || book;
+    
+    // استخدام API آخر يدعم CORS بشكل أفضل
+    const alternativeApi = `https://api.hadith.gading.dev/books/${apiBookName}?range=${page}-${page}`;
+    
+    const response = await fetch(alternativeApi, {
+        mode: 'cors',
+        headers: {
+            'Accept': 'application/json'
+        }
+    });
+    
+    if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.data && data.data.hadiths && data.data.hadiths.length > 0) {
+        const hadith = data.data.hadiths[0];
+        hadithContainer.innerHTML = '';
+        
         const hadithElement = document.createElement('div');
         hadithElement.textContent = `${hadith.arab}`;
         hadithContainer.appendChild(hadithElement);
-
-        // تحديث رقم الحديث
-        document.getElementById('num').textContent = `${hadith.number} / ${totalHadith}`;
+        
+        const numElement = document.getElementById('num');
+        if (numElement) {
+            numElement.textContent = `${hadith.number} / ${totalHadith}`;
+        }
+    } else if (data.data && data.data.hadiths && data.data.hadiths.length === 0) {
+        hadithContainer.innerHTML = '<div>لا توجد أحاديث في هذه الصفحة. جرب الصفحة التالية.</div>';
+        const numElement = document.getElementById('num');
+        if (numElement) {
+            numElement.textContent = `0 / ${totalHadith}`;
+        }
+        throw new Error('No hadiths in this page');
     } else {
-        hadithContainer.textContent = 'لا توجد أحاديث.';
-        document.getElementById('num').textContent = '0 / 300'; // أو أي قيمة حسب الحالة
+        hadithContainer.innerHTML = '<div>لا توجد أحاديث في هذا المصدر.</div>';
+        throw new Error('Invalid API response');
     }
 }
 
@@ -132,43 +247,139 @@ document.getElementById('book-select').addEventListener('change', () => {
 // جلب الأحاديث عند تحميل الصفحة
 fetchHadith('muslim', currentPage);
 function getLocationByIP() {
-    fetch('http://ip-api.com/json/')
-        .then(response => response.json())
-        .then(data => {
-            const latitude = data.lat;
-            const longitude = data.lon;
-
-            // استدعاء مواقيت الصلاة باستخدام الإحداثيات
-            getPrayerTimes(latitude, longitude);
+    // استخدام موقع افتراضي مباشرة لتجنب مشاكل CORS
+    // القاهرة كموقع افتراضي (يمكن تغييره حسب الحاجة)
+    const defaultLatitude = 30.0444;
+    const defaultLongitude = 31.2357;
+    
+    // محاولة جلب الموقع فقط إذا كان الموقع يعمل من HTTP server
+    // إذا كان يعمل من file://، استخدم الموقع الافتراضي مباشرة
+    if (window.location.protocol === 'file:') {
+        // الموقع يعمل من ملف محلي، استخدم الموقع الافتراضي
+        getPrayerTimes(defaultLatitude, defaultLongitude);
+        return;
+    }
+    
+    // محاولة جلب الموقع من API يدعم CORS
+    // استخدام API بديل يدعم CORS بشكل أفضل
+    fetch('https://ipapi.co/json/', {
+        mode: 'cors',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
         })
-        .catch(error => console.error('Error fetching IP location:', error));
+        .then(data => {
+            if (data.latitude && data.longitude) {
+                const latitude = data.latitude;
+                const longitude = data.longitude;
+                // استدعاء مواقيت الصلاة باستخدام الإحداثيات
+                getPrayerTimes(latitude, longitude);
+            } else {
+                // في حالة فشل جلب الموقع، استخدام القاهرة كموقع افتراضي
+                getPrayerTimes(defaultLatitude, defaultLongitude);
+            }
+        })
+        .catch(error => {
+            // في حالة فشل جلب الموقع، استخدام القاهرة كموقع افتراضي
+            getPrayerTimes(defaultLatitude, defaultLongitude);
+        });
 }
 
 function getPrayerTimes(latitude, longitude) {
-    // استخدم API مجاني مثل MuslimSalat
-    fetch(`http://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}`)
-        .then(response => response.json())
-        .then(data => {
-            const times = data.data.timings;
-
-            // عرض مواقيت الصلاة
-            document.getElementById('fajr').textContent = convertTo12HourFormat(times.Fajr);
-            document.getElementById('dhuhr').textContent = convertTo12HourFormat(times.Dhuhr);
-            document.getElementById('asr').textContent = convertTo12HourFormat(times.Asr);
-            document.getElementById('maghrib').textContent = convertTo12HourFormat(times.Maghrib);
-            document.getElementById('isha').textContent = convertTo12HourFormat(times.Isha);
-
-            document.getElementById('prayerTimes').style.display = 'block';
+    // الحصول على التاريخ الحالي
+    const today = new Date();
+    const day = today.getDate();
+    const month = today.getMonth() + 1;
+    const year = today.getFullYear();
+    
+    // استخدم API مجاني للحصول على مواقيت الصلاة
+    fetch(`https://api.aladhan.com/v1/timings/${day}-${month}-${year}?latitude=${latitude}&longitude=${longitude}&method=2`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
         })
-        .catch(error => console.error('Error fetching prayer times:', error));
+        .then(data => {
+            if (data.data && data.data.timings) {
+                const times = data.data.timings;
+
+                // التحقق من وجود العناصر قبل عرض مواقيت الصلاة
+                const fajrEl = document.getElementById('fajr');
+                const dhuhrEl = document.getElementById('dhuhr');
+                const asrEl = document.getElementById('asr');
+                const maghribEl = document.getElementById('maghrib');
+                const ishaEl = document.getElementById('isha');
+
+                if (fajrEl && times.Fajr) {
+                    fajrEl.textContent = convertTo12HourFormat(times.Fajr);
+                }
+                if (dhuhrEl && times.Dhuhr) {
+                    dhuhrEl.textContent = convertTo12HourFormat(times.Dhuhr);
+                }
+                if (asrEl && times.Asr) {
+                    asrEl.textContent = convertTo12HourFormat(times.Asr);
+                }
+                if (maghribEl && times.Maghrib) {
+                    maghribEl.textContent = convertTo12HourFormat(times.Maghrib);
+                }
+                if (ishaEl && times.Isha) {
+                    ishaEl.textContent = convertTo12HourFormat(times.Isha);
+                }
+
+                const prayerTimesEl = document.getElementById('prayerTimes');
+                if (prayerTimesEl) {
+                    prayerTimesEl.style.display = 'block';
+                }
+            } else {
+                console.error('Invalid API response:', data);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching prayer times:', error);
+            // في حالة فشل جلب المواقيت، عرض رسالة خطأ
+            const fajrEl = document.getElementById('fajr');
+            if (fajrEl) {
+                fajrEl.textContent = 'خطأ في التحميل';
+            }
+        });
 }
 
 function convertTo12HourFormat(time) {
-    let [hours, minutes] = time.split(':');
-    hours = parseInt(hours);
-    const ampm = hours >= 12 ? 'مساءً' : 'صباحا';
-    hours = hours % 12 || 12; // تحويل إلى صيغة 12 ساعة
-    return hours + ':' + minutes + ' ' + ampm;
+    if (!time || typeof time !== 'string') {
+        return '0:00';
+    }
+    
+    try {
+        let [hours, minutes] = time.split(':');
+        if (!hours || !minutes) {
+            return '0:00';
+        }
+        
+        hours = parseInt(hours);
+        minutes = parseInt(minutes);
+        
+        if (isNaN(hours) || isNaN(minutes)) {
+            return '0:00';
+        }
+        
+        const ampm = hours >= 12 ? 'مساءً' : 'صباحا';
+        hours = hours % 12 || 12; // تحويل إلى صيغة 12 ساعة
+        
+        // التأكد من أن الدقائق تتكون من رقمين
+        minutes = minutes.toString().padStart(2, '0');
+        
+        return hours + ':' + minutes + ' ' + ampm;
+    } catch (error) {
+        console.error('Error converting time:', error);
+        return '0:00';
+    }
 }
 
 // استدعاء الوظيفة لتحديد الموقع وعرض أوقات الصلاة
@@ -254,7 +465,7 @@ const mainLectureListElement = document.getElementById("mainLectureList");
 const subLectureListElement = document.getElementById("subLectureList");
 const videoPlayerElement = document.getElementById("videoPlayer");
 const videoDescriptionElement = document.getElementById("videoDescription");
-const searchBox = document.getElementById("searchBox"); // صندوق البحث
+const searchBox = document.getElementById("searchBox"); // صندوق البحث (قد لا يكون موجودًا في الصفحة الرئيسية)
 const baseApiUrl = "https://api3.islamhouse.com/v3/paV29H2gm56kvLPy/main/videos/ar/ar/";
 
 let totalPages = 36; // عدد الصفحات الإجمالي
@@ -313,7 +524,7 @@ function displayMainLectures(lectures, append = false) {
             }
 
             if (window.innerWidth <= 380) {
-                scrollToElement(videoPlayerElement);
+                videoPlayerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         };
 
@@ -335,7 +546,7 @@ function playSubLecture(subItem) {
     videoDescriptionElement.textContent = subItem.description;
 
     if (window.innerWidth <= 380) {
-        scrollToElement(videoPlayerElement);
+        videoPlayerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }
 
@@ -350,7 +561,7 @@ function displaySubLectures(attachments) {
             playSubLecture(subItem);
 
             if (window.innerWidth <= 380) {
-                scrollToElement(videoPlayerElement);
+                videoPlayerElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         };
         subLectureListElement.appendChild(subListItem);
